@@ -3,31 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全国天气分析 - 实时天气预报与气候数据</title>
+    <title>全国天气分析 - 气象数据可视化平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: "Microsoft YaHei", sans-serif;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
         }
         
         body {
-            background-color: #f5f7fa;
-            color: #333;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #e0e7ff;
             line-height: 1.6;
+            min-height: 100vh;
         }
         
         header {
-            background: linear-gradient(135deg, #1e5799 0%, #207cca 100%);
+            background: rgba(10, 30, 50, 0.85);
             color: white;
             padding: 1rem 0;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         
         .container {
             width: 90%;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
@@ -35,73 +42,119 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             font-size: 1.8rem;
             font-weight: bold;
+            color: #5bc0de;
         }
         
-        .logo span {
-            color: #ffcc00;
+        .logo-icon {
+            font-size: 2.2rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
         
         nav ul {
             display: flex;
             list-style: none;
-        }
-        
-        nav ul li {
-            margin-left: 1.5rem;
+            gap: 1.5rem;
         }
         
         nav ul li a {
-            color: white;
+            color: #aaccff;
             text-decoration: none;
             font-weight: 500;
-            transition: color 0.3s;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: all 0.3s;
+            position: relative;
+            display: inline-block;
         }
         
-        nav ul li a:hover {
-            color: #ffcc00;
+        nav ul li a:hover, nav ul li a.active {
+            background: rgba(91, 192, 222, 0.2);
+            color: #5bc0de;
+        }
+        
+        nav ul li a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: #5bc0de;
+            border-radius: 2px;
+            transform: translateX(-50%);
+            transition: width 0.3s;
+        }
+        
+        nav ul li a:hover::after {
+            width: 70%;
         }
         
         .search-bar {
-            margin: 1.5rem 0;
+            margin: 1.5rem auto;
             display: flex;
+            max-width: 600px;
         }
         
         .search-bar input {
             flex: 1;
-            padding: 0.8rem;
+            padding: 0.9rem 1.2rem;
             border: none;
-            border-radius: 4px 0 0 4px;
-            font-size: 1rem;
+            border-radius: 30px 0 0 30px;
+            font-size: 1.05rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            border-right: none;
+        }
+        
+        .search-bar input::placeholder {
+            color: #aaccff;
         }
         
         .search-bar button {
-            padding: 0.8rem 1.5rem;
-            background-color: #ffcc00;
+            padding: 0.9rem 1.8rem;
+            background: linear-gradient(90deg, #5bc0de, #4a90e2);
             border: none;
-            border-radius: 0 4px 4px 0;
+            border-radius: 0 30px 30px 0;
             cursor: pointer;
             font-weight: bold;
-            transition: background-color 0.3s;
+            color: white;
+            transition: all 0.3s;
         }
         
         .search-bar button:hover {
-            background-color: #e6b800;
+            background: linear-gradient(90deg, #4a90e2, #5bc0de);
+            box-shadow: 0 0 15px rgba(91, 192, 222, 0.5);
         }
         
         .hero {
-            background: url('https://via.placeholder.com/1200x400') no-repeat center center;
-            background-size: cover;
-            height: 400px;
+            height: 500px;
             display: flex;
             align-items: center;
             color: white;
             text-align: center;
             position: relative;
+            overflow: hidden;
+            margin-top: 20px;
+            border-radius: 15px;
+            background: url('https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1800&q=80') no-repeat center center;
+            background-size: cover;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
         
         .hero::before {
@@ -111,179 +164,387 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.8), rgba(44, 83, 100, 0.6));
         }
         
         .hero-content {
             position: relative;
             z-index: 1;
             width: 100%;
+            padding: 0 20px;
         }
         
         .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
+            font-size: 3.2rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(to right, #5bc0de, #9be6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         
         .hero p {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             max-width: 800px;
-            margin: 0 auto 2rem;
+            margin: 0 auto 3rem;
+            font-weight: 300;
+            color: #e0f7ff;
         }
         
         .btn {
             display: inline-block;
-            padding: 0.8rem 1.5rem;
-            background-color: #ffcc00;
-            color: #333;
+            padding: 1rem 2.2rem;
+            background: linear-gradient(90deg, #5bc0de, #4a90e2);
+            color: white;
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: 30px;
             font-weight: bold;
-            transition: background-color 0.3s;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: none;
+            cursor: pointer;
         }
         
         .btn:hover {
-            background-color: #e6b800;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(90deg, #4a90e2, #5bc0de);
         }
         
         .features {
-            padding: 3rem 0;
+            padding: 4rem 0;
         }
         
         .section-title {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
         }
         
         .section-title h2 {
-            font-size: 2rem;
-            color: #1e5799;
+            font-size: 2.5rem;
+            color: #5bc0de;
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #5bc0de, #4a90e2);
+            border-radius: 2px;
+        }
+        
+        .section-title p {
+            color: #aaccff;
+            max-width: 700px;
+            margin: 0 auto;
+            font-size: 1.2rem;
         }
         
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 2rem;
         }
         
         .feature-card {
-            background-color: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
+            background: rgba(30, 50, 70, 0.5);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.4s;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(91, 192, 222, 0.2);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         
         .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border-color: rgba(91, 192, 222, 0.4);
+            background: rgba(30, 50, 70, 0.7);
         }
         
         .feature-icon {
-            font-size: 2.5rem;
-            color: #1e5799;
-            margin-bottom: 1rem;
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #5bc0de;
         }
         
         .feature-card h3 {
-            margin-bottom: 1rem;
-            color: #1e5799;
+            margin-bottom: 1.2rem;
+            color: #5bc0de;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+        
+        .feature-card p {
+            color: #cce0ff;
+            flex-grow: 1;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+        
+        .feature-card .tech-list {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .feature-card .tech-tag {
+            background: rgba(91, 192, 222, 0.2);
+            color: #5bc0de;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        
+        .weather-map-section {
+            padding: 3rem 0;
+        }
+        
+        .weather-map-container {
+            background: rgba(20, 35, 50, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(91, 192, 222, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .map-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .map-controls button {
+            padding: 10px 20px;
+            background: rgba(30, 50, 70, 0.7);
+            color: #aaccff;
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+        
+        .map-controls button:hover, .map-controls button.active {
+            background: linear-gradient(90deg, #5bc0de, #4a90e2);
+            color: white;
+            border-color: transparent;
         }
         
         .weather-map {
-            height: 500px;
-            background-color: #ddd;
-            margin: 2rem 0;
-            border-radius: 8px;
+            height: 600px;
+            border-radius: 10px;
             overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
         
         .city-weather {
-            padding: 3rem 0;
-            background-color: #eef2f7;
+            padding: 4rem 0;
         }
         
         .city-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
         }
         
         .city-card {
-            background-color: white;
-            border-radius: 8px;
+            background: rgba(30, 50, 70, 0.5);
+            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.4s;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(91, 192, 222, 0.2);
+        }
+        
+        .city-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
         }
         
         .city-header {
-            background-color: #1e5799;
+            background: linear-gradient(90deg, #1e5799, #207cca);
             color: white;
-            padding: 1rem;
+            padding: 1.5rem;
             text-align: center;
+            position: relative;
+        }
+        
+        .city-header h3 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .city-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
         
         .city-content {
-            padding: 1.5rem;
+            padding: 1.8rem;
             text-align: center;
         }
         
         .weather-icon {
-            font-size: 3rem;
-            margin: 1rem 0;
+            font-size: 3.5rem;
+            margin: 1.2rem 0;
             color: #ffcc00;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
         
         .temp {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.8rem;
+            color: #ffcc00;
+        }
+        
+        .city-content p {
+            margin: 8px 0;
+            color: #cce0ff;
+            font-size: 1.1rem;
+        }
+        
+        .weather-chart {
+            height: 200px;
+            margin-top: 20px;
+        }
+        
+        .data-section {
+            padding: 4rem 0;
+        }
+        
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .data-card {
+            background: rgba(20, 35, 50, 0.6);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(91, 192, 222, 0.2);
+        }
+        
+        .data-card h3 {
+            color: #5bc0de;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+        
+        .data-chart {
+            height: 300px;
         }
         
         footer {
-            background-color: #1e5799;
-            color: white;
-            padding: 2rem 0;
+            background: rgba(10, 25, 40, 0.9);
+            color: #aaccff;
+            padding: 3rem 0 1.5rem;
             text-align: center;
+            margin-top: 4rem;
+            border-top: 1px solid rgba(91, 192, 222, 0.2);
         }
         
         .footer-links {
             display: flex;
             justify-content: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1.5rem;
         }
         
         .footer-links a {
-            color: white;
-            margin: 0 1rem;
+            color: #5bc0de;
             text-decoration: none;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .footer-links a:hover {
-            text-decoration: underline;
+            color: #9be6ff;
+            transform: translateY(-2px);
+        }
+        
+        footer p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+        
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 1.5rem 0;
+        }
+        
+        .social-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(91, 192, 222, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: #5bc0de;
+            transition: all 0.3s;
+        }
+        
+        .social-icon:hover {
+            background: #5bc0de;
+            color: white;
+            transform: translateY(-5px);
         }
         
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
                 text-align: center;
+                gap: 1rem;
             }
             
             nav ul {
-                margin-top: 1rem;
                 justify-content: center;
-            }
-            
-            nav ul li {
-                margin: 0 0.75rem;
+                flex-wrap: wrap;
             }
             
             .hero h1 {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
             
             .hero p {
-                font-size: 1rem;
+                font-size: 1.1rem;
+            }
+            
+            .data-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -292,20 +553,23 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <div class="logo">天气<span>分析</span></div>
+                <div class="logo">
+                    <span class="logo-icon">🌦️</span>
+                    <span>气象数据可视化平台</span>
+                </div>
                 <nav>
                     <ul>
-                        <li><a href="#">首页</a></li>
+                        <li><a href="#" class="active">首页</a></li>
                         <li><a href="#">实时天气</a></li>
-                        <li><a href="#">天气预报</a></li>
-                        <li><a href="#">气候数据</a></li>
-                        <li><a href="#">气象灾害</a></li>
+                        <li><a href="#">气象地图</a></li>
+                        <li><a href="#">数据分析</a></li>
+                        <li><a href="#">灾害预警</a></li>
                         <li><a href="#">关于我们</a></li>
                     </ul>
                 </nav>
             </div>
             <div class="search-bar">
-                <input type="text" placeholder="输入城市名称查询天气...">
+                <input type="text" placeholder="输入城市名称查询实时天气...">
                 <button>搜索</button>
             </div>
         </div>
@@ -313,100 +577,164 @@
     
     <section class="hero">
         <div class="hero-content">
-            <h1>全国天气分析与预报平台</h1>
-            <p>提供精准的实时天气数据、未来天气预报和详细的气候分析，帮助您更好地规划生活和出行</p>
-            <a href="#" class="btn">查看实时天气</a>
+            <h1>全国气象数据可视化分析平台</h1>
+            <p>基于ECharts与GL技术的高级气象可视化系统，提供精准的天气数据、动态风场展示与深度气候分析</p>
+            <a href="#" class="btn">探索实时气象地图</a>
         </div>
     </section>
     
     <section class="features">
         <div class="container">
             <div class="section-title">
-                <h2>我们的服务</h2>
+                <h2>核心功能与技术</h2>
+                <p>结合Windy.com风格与ECharts GL技术，提供专业级气象数据可视化解决方案</p>
             </div>
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🌦️</div>
-                    <h3>实时天气</h3>
-                    <p>提供全国各城市实时天气状况，包括温度、湿度、风速、降水量等详细信息。</p>
+                    <div class="feature-icon">🌪️</div>
+                    <h3>动态风场可视化</h3>
+                    <p>使用ECharts GL实现类似Windy.com的粒子风场效果，实时展示风向与风速变化，支持3D视角旋转与缩放。</p>
+                    <div class="tech-list">
+                        <span class="tech-tag">ECharts GL</span>
+                        <span class="tech-tag">WebGL</span>
+                        <span class="tech-tag">粒子系统</span>
+                    </div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>天气预报</h3>
-                    <p>未来7天精准天气预报，包括逐小时预报，帮助您提前规划行程。</p>
+                    <div class="feature-icon">🌡️</div>
+                    <h3>多维气象数据</h3>
+                    <p>整合温度、湿度、气压、降水量等数据，通过热力图、等值线、3D柱状图等多种形式进行可视化展示。</p>
+                    <div class="tech-list">
+                        <span class="tech-tag">热力图</span>
+                        <span class="tech-tag">等值线</span>
+                        <span class="tech-tag">3D可视化</span>
+                    </div>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🌍</div>
-                    <h3>气候分析</h3>
-                    <p>长期气候数据分析，比较历年气候趋势，提供专业气象报告。</p>
+                    <div class="feature-icon">📈</div>
+                    <h3>历史数据分析</h3>
+                    <p>提供过去30年气象数据趋势分析，支持多城市对比、极端天气事件回溯及气候模式变化研究。</p>
+                    <div class="tech-list">
+                        <span class="tech-tag">时间序列</span>
+                        <span class="tech-tag">数据对比</span>
+                        <span class="tech-tag">趋势预测</span>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
     
-    <section class="container">
-        <div class="section-title">
-            <h2>全国天气地图</h2>
-        </div>
-        <div class="weather-map">
-            <!-- 这里将放置天气地图 -->
-            <p style="text-align: center; padding-top: 230px;">全国实时天气地图可视化展示</p>
+    <section class="weather-map-section">
+        <div class="container">
+            <div class="section-title">
+                <h2>高级气象地图</h2>
+                <p>交互式3D气象数据可视化平台，支持多层数据叠加分析</p>
+            </div>
+            
+            <div class="weather-map-container">
+                <div class="map-controls">
+                    <button class="active">风场模式</button>
+                    <button>温度分布</button>
+                    <button>降水预测</button>
+                    <button>气压系统</button>
+                    <button>卫星云图</button>
+                </div>
+                
+                <div id="weather-map" class="weather-map"></div>
+            </div>
         </div>
     </section>
     
     <section class="city-weather">
         <div class="container">
             <div class="section-title">
-                <h2>主要城市天气</h2>
+                <h2>主要城市实时天气</h2>
+                <p>全国重点城市气象数据监测与分析</p>
             </div>
             <div class="city-grid">
                 <div class="city-card">
                     <div class="city-header">
-                        <h3>北京</h3>
+                        <h3>北京市</h3>
+                        <p>华北地区 • 实时监测</p>
                     </div>
                     <div class="city-content">
                         <div class="weather-icon">☀️</div>
                         <div class="temp">28°C</div>
-                        <p>晴朗</p>
-                        <p>湿度: 45%</p>
-                        <p>风力: 2级</p>
+                        <p>晴朗 • 紫外线强</p>
+                        <p>湿度: 45% | 风力: 2级</p>
+                        <p>气压: 1012 hPa</p>
+                        <div id="beijing-chart" class="weather-chart"></div>
                     </div>
                 </div>
                 <div class="city-card">
                     <div class="city-header">
-                        <h3>上海</h3>
+                        <h3>上海市</h3>
+                        <p>华东地区 • 实时监测</p>
                     </div>
                     <div class="city-content">
                         <div class="weather-icon">⛅</div>
                         <div class="temp">30°C</div>
-                        <p>多云</p>
-                        <p>湿度: 65%</p>
-                        <p>风力: 3级</p>
+                        <p>多云 • 局部有雨</p>
+                        <p>湿度: 65% | 风力: 3级</p>
+                        <p>气压: 1008 hPa</p>
+                        <div id="shanghai-chart" class="weather-chart"></div>
                     </div>
                 </div>
                 <div class="city-card">
                     <div class="city-header">
-                        <h3>广州</h3>
+                        <h3>广州市</h3>
+                        <p>华南地区 • 实时监测</p>
                     </div>
                     <div class="city-content">
                         <div class="weather-icon">🌧️</div>
                         <div class="temp">32°C</div>
-                        <p>雷阵雨</p>
-                        <p>湿度: 85%</p>
-                        <p>风力: 4级</p>
+                        <p>雷阵雨 • 空气湿润</p>
+                        <p>湿度: 85% | 风力: 4级</p>
+                        <p>气压: 1005 hPa</p>
+                        <div id="guangzhou-chart" class="weather-chart"></div>
                     </div>
                 </div>
                 <div class="city-card">
                     <div class="city-header">
-                        <h3>成都</h3>
+                        <h3>成都市</h3>
+                        <p>西南地区 • 实时监测</p>
                     </div>
                     <div class="city-content">
                         <div class="weather-icon">🌥️</div>
                         <div class="temp">26°C</div>
-                        <p>阴天</p>
-                        <p>湿度: 70%</p>
-                        <p>风力: 1级</p>
+                        <p>阴天 • 空气质量良</p>
+                        <p>湿度: 70% | 风力: 1级</p>
+                        <p>气压: 1010 hPa</p>
+                        <div id="chengdu-chart" class="weather-chart"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="data-section">
+        <div class="container">
+            <div class="section-title">
+                <h2>气象数据分析</h2>
+                <p>基于历史与实时数据的深度可视化分析</p>
+            </div>
+            
+            <div class="data-grid">
+                <div class="data-card">
+                    <h3>全国温度分布热力图</h3>
+                    <div id="temp-chart" class="data-chart"></div>
+                </div>
+                <div class="data-card">
+                    <h3>过去24小时降水量分析</h3>
+                    <div id="rain-chart" class="data-chart"></div>
+                </div>
+                <div class="data-card">
+                    <h3>风速与风向玫瑰图</h3>
+                    <div id="wind-chart" class="data-chart"></div>
+                </div>
+                <div class="data-card">
+                    <h3>30日气温变化趋势</h3>
+                    <div id="trend-chart" class="data-chart"></div>
                 </div>
             </div>
         </div>
@@ -414,16 +742,625 @@
     
     <footer>
         <div class="container">
-            <div class="footer-links">
-                <a href="#">关于我们</a>
-                <a href="#">联系方式</a>
-                <a href="#">隐私政策</a>
-                <a href="#">使用条款</a>
-                <a href="#">API接口</a>
+            <div class="social-icons">
+                <a href="#" class="social-icon">📱</a>
+                <a href="#" class="social-icon">📧</a>
+                <a href="#" class="social-icon">💬</a>
+                <a href="#" class="social-icon">🌐</a>
             </div>
-            <p>© 2023 全国天气分析平台 版权所有</p>
-            <p>数据来源: 中国气象局 国家气候中心</p>
+            
+            <div class="footer-links">
+                <a href="#"><span>📄</span> 关于我们</a>
+                <a href="#"><span>📞</span> 联系方式</a>
+                <a href="#"><span>🔒</span> 隐私政策</a>
+                <a href="#"><span>📑</span> 使用条款</a>
+                <a href="#"><span>⚙️</span> API接口</a>
+            </div>
+            <p>数据来源: 中国气象局 | 国家气候中心 | ECMWF公开数据</p>
         </div>
     </footer>
+
+    <script>
+        // 初始化所有图表
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化风场地图
+            initWindMap();
+            
+            // 初始化城市图表
+            initCityCharts();
+            
+            // 初始化数据分析图表
+            initDataCharts();
+        });
+        
+        // 风场地图初始化
+        function initWindMap() {
+            const chartDom = document.getElementById('weather-map');
+            const chart = echarts.init(chartDom);
+            
+            // 模拟风场数据
+            const data = [];
+            for (let i = 0; i < 1000; i++) {
+                data.push([
+                    Math.random() * 80 + 70,  // 经度 (70-150)
+                    Math.random() * 50 + 15,  // 纬度 (15-65)
+                    Math.random() * 10,       // 风速
+                    Math.random() * 360       // 风向
+                ]);
+            }
+            
+            const option = {
+                backgroundColor: 'transparent',
+                visualMap: {
+                    show: false,
+                    min: 0,
+                    max: 10,
+                    dimension: 2,
+                    inRange: {
+                        color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+                    }
+                },
+                series: [{
+                    type: 'scatterGL',
+                    coordinateSystem: 'geo',
+                    symbol: 'arrow',
+                    symbolSize: (val) => val[2] * 2 + 5,
+                    itemStyle: {
+                        color: (params) => {
+                            const speed = params.value[2];
+                            if (speed < 2) return '#74add1';
+                            if (speed < 4) return '#abd9e9';
+                            if (speed < 6) return '#fee090';
+                            if (speed < 8) return '#fdae61';
+                            return '#f46d43';
+                        },
+                        opacity: 0.8
+                    },
+                    data: data,
+                    encode: {
+                        lng: 0,
+                        lat: 1
+                    }
+                }],
+                geo: {
+                    map: 'china',
+                    roam: true,
+                    label: {
+                        emphasis: {
+                            show: false
+                        }
+                    },
+                    itemStyle: {
+                        areaColor: 'rgba(20, 40, 80, 0.5)',
+                        borderColor: '#2c5380',
+                        borderWidth: 1
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            areaColor: 'rgba(30, 80, 150, 0.7)'
+                        },
+                        label: {
+                            color: '#fff'
+                        }
+                    }
+                }
+            };
+            
+            chart.setOption(option);
+            
+            // 响应窗口大小变化
+            window.addEventListener('resize', function() {
+                chart.resize();
+            });
+        }
+        
+        // 城市天气图表初始化
+        function initCityCharts() {
+            const cities = ['beijing', 'shanghai', 'guangzhou', 'chengdu'];
+            
+            cities.forEach(city => {
+                const chartDom = document.getElementById(`${city}-chart`);
+                const chart = echarts.init(chartDom);
+                
+                // 模拟24小时温度数据
+                const hours = [];
+                const temps = [];
+                for (let i = 0; i < 24; i++) {
+                    hours.push(`${i}:00`);
+                    // 根据不同城市生成不同的温度曲线
+                    let baseTemp;
+                    switch(city) {
+                        case 'beijing': baseTemp = 25; break;
+                        case 'shanghai': baseTemp = 28; break;
+                        case 'guangzhou': baseTemp = 30; break;
+                        case 'chengdu': baseTemp = 26; break;
+                    }
+                    temps.push((baseTemp + Math.sin(i * Math.PI / 12) * 5 + Math.random() * 2).toFixed(1));
+                }
+                
+                const option = {
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        top: '10%',
+                        containLabel: true
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: hours,
+                        axisLine: {
+                            lineStyle: {
+                                color: '#5bc0de'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#aaccff',
+                            interval: 3
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: '温度 °C',
+                        nameTextStyle: {
+                            color: '#aaccff'
+                        },
+                        axisLine: {
+                            lineStyle: {
+                                color: '#5bc0de'
+                            }
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                color: 'rgba(91, 192, 222, 0.1)'
+                            }
+                        },
+                        axisLabel: {
+                            color: '#aaccff'
+                        }
+                    },
+                    series: [{
+                        name: '温度',
+                        type: 'line',
+                        data: temps,
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 6,
+                        lineStyle: {
+                            width: 3,
+                            color: '#ffcc00'
+                        },
+                        itemStyle: {
+                            color: '#ffcc00'
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(255, 204, 0, 0.3)' },
+                                { offset: 1, color: 'rgba(255, 204, 0, 0.05)' }
+                            ])
+                        }
+                    }]
+                };
+                
+                chart.setOption(option);
+            });
+        }
+        
+        // 数据图表初始化
+        function initDataCharts() {
+            // 温度分布热力图
+            initTempChart();
+            
+            // 降水量分析
+            initRainChart();
+            
+            // 风速风向图
+            initWindChart();
+            
+            // 气温变化趋势
+            initTrendChart();
+        }
+        
+        function initTempChart() {
+            const chartDom = document.getElementById('temp-chart');
+            const chart = echarts.init(chartDom);
+            
+            const option = {
+                tooltip: {
+                    position: 'top'
+                },
+                grid: {
+                    height: '80%',
+                    top: '10%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['北京', '上海', '广州', '成都', '哈尔滨', '昆明', '乌鲁木齐', '拉萨'],
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        interval: 0,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff'
+                    }
+                },
+                visualMap: {
+                    min: 10,
+                    max: 38,
+                    calculable: true,
+                    orient: 'vertical',
+                    left: 'right',
+                    top: 'center',
+                    textStyle: {
+                        color: '#aaccff'
+                    },
+                    inRange: {
+                        color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+                    }
+                },
+                series: [{
+                    name: '温度',
+                    type: 'heatmap',
+                    data: generateHeatmapData(),
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    },
+                    label: {
+                        show: true,
+                        color: '#333',
+                        formatter: (param) => param.data[2] + '°C'
+                    }
+                }]
+            };
+            
+            chart.setOption(option);
+            
+            function generateHeatmapData() {
+                const data = [];
+                const cities = ['北京', '上海', '广州', '成都', '哈尔滨', '昆明', '乌鲁木齐', '拉萨'];
+                const times = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'];
+                
+                cities.forEach((city, x) => {
+                    times.forEach((time, y) => {
+                        let baseTemp;
+                        switch(city) {
+                            case '北京': baseTemp = 25; break;
+                            case '上海': baseTemp = 28; break;
+                            case '广州': baseTemp = 32; break;
+                            case '成都': baseTemp = 26; break;
+                            case '哈尔滨': baseTemp = 20; break;
+                            case '昆明': baseTemp = 22; break;
+                            case '乌鲁木齐': baseTemp = 24; break;
+                            case '拉萨': baseTemp = 18; break;
+                        }
+                        // 根据时间调整温度
+                        const timeFactor = [0.8, 0.7, 0.9, 1.2, 1.1, 1.0][y];
+                        const temp = (baseTemp * timeFactor + (Math.random() - 0.5) * 3).toFixed(1);
+                        data.push([x, y, temp]);
+                    });
+                });
+                
+                return data;
+            }
+        }
+        
+        function initRainChart() {
+            const chartDom = document.getElementById('rain-chart');
+            const chart = echarts.init(chartDom);
+            
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['降水量(mm)', '预测降水量'],
+                    textStyle: {
+                        color: '#aaccff'
+                    },
+                    right: 10,
+                    top: 10
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['北京', '上海', '广州', '成都', '哈尔滨', '昆明', '乌鲁木齐', '拉萨'],
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        interval: 0,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '降水量(mm)',
+                    nameTextStyle: {
+                        color: '#aaccff'
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: 'rgba(91, 192, 222, 0.1)'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff'
+                    }
+                },
+                series: [
+                    {
+                        name: '降水量(mm)',
+                        type: 'bar',
+                        data: [5.2, 12.5, 35.8, 8.7, 3.4, 7.9, 1.2, 0.5],
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#74add1' },
+                                { offset: 1, color: '#4575b4' }
+                            ])
+                        },
+                        label: {
+                            show: true,
+                            position: 'top',
+                            color: '#aaccff'
+                        }
+                    },
+                    {
+                        name: '预测降水量',
+                        type: 'line',
+                        data: [7.5, 15.2, 30.4, 12.8, 5.6, 9.3, 2.1, 1.8],
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        lineStyle: {
+                            width: 3,
+                            color: '#ffcc00'
+                        },
+                        itemStyle: {
+                            color: '#ffcc00'
+                        }
+                    }
+                ]
+            };
+            
+            chart.setOption(option);
+        }
+        
+        function initWindChart() {
+            const chartDom = document.getElementById('wind-chart');
+            const chart = echarts.init(chartDom);
+            
+            // 风向数据 (16个方向)
+            const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
+                              'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+            const data = directions.map(() => Math.floor(Math.random() * 20) + 5);
+            
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c} km/h'
+                },
+                legend: {
+                    data: ['风速'],
+                    textStyle: {
+                        color: '#aaccff'
+                    },
+                    bottom: 10
+                },
+                polar: {
+                    radius: '80%'
+                },
+                angleAxis: {
+                    type: 'category',
+                    data: directions,
+                    startAngle: 90,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff'
+                    }
+                },
+                radiusAxis: {
+                    min: 0,
+                    max: 25,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        formatter: '{value} km/h'
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: 'rgba(91, 192, 222, 0.1)'
+                        }
+                    }
+                },
+                series: [{
+                    name: '风速',
+                    type: 'bar',
+                    coordinateSystem: 'polar',
+                    data: data,
+                    itemStyle: {
+                        color: function(params) {
+                            const speed = params.value;
+                            if (speed < 5) return '#74add1';
+                            if (speed < 10) return '#abd9e9';
+                            if (speed < 15) return '#fee090';
+                            if (speed < 20) return '#fdae61';
+                            return '#f46d43';
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'middle',
+                        formatter: '{c} km/h',
+                        color: '#333',
+                        fontWeight: 'bold'
+                    }
+                }]
+            };
+            
+            chart.setOption(option);
+        }
+        
+        function initTrendChart() {
+            const chartDom = document.getElementById('trend-chart');
+            const chart = echarts.init(chartDom);
+            
+            // 生成日期 (过去30天)
+            const dates = [];
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                dates.push(`${date.getMonth()+1}/${date.getDate()}`);
+            }
+            
+            // 生成温度数据
+            const minTemps = dates.map(() => Math.floor(Math.random() * 10) + 15);
+            const maxTemps = minTemps.map(temp => temp + Math.floor(Math.random() * 8) + 3);
+            
+            const option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: ['最高温度', '最低温度'],
+                    textStyle: {
+                        color: '#aaccff'
+                    },
+                    top: 10
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: dates,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        interval: 4
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '温度 (°C)',
+                    nameTextStyle: {
+                        color: '#aaccff'
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: 'rgba(91, 192, 222, 0.1)'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff'
+                    }
+                },
+                series: [
+                    {
+                        name: '最高温度',
+                        type: 'line',
+                        data: maxTemps,
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        lineStyle: {
+                            width: 3,
+                            color: '#f46d43'
+                        },
+                        itemStyle: {
+                            color: '#f46d43'
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(244, 109, 67, 0.3)' },
+                                { offset: 1, color: 'rgba(244, 109, 67, 0.05)' }
+                            ])
+                        }
+                    },
+                    {
+                        name: '最低温度',
+                        type: 'line',
+                        data: minTemps,
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        lineStyle: {
+                            width: 3,
+                            color: '#74add1'
+                        },
+                        itemStyle: {
+                            color: '#74add1'
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(116, 173, 209, 0.3)' },
+                                { offset: 1, color: 'rgba(116, 173, 209, 0.05)' }
+                            ])
+                        }
+                    }
+                ]
+            };
+            
+            chart.setOption(option);
+        }
+    </script>
 </body>
 </html>
