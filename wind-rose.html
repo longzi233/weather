@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>气象数据可视化平台 - 数据分析详情</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #e0e7ff;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            color: #5bc0de;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #aaccff;
+            font-size: 1.2rem;
+        }
+        
+        .chart-type-selector {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .chart-type-selector select {
+            background: rgba(30, 50, 70, 0.7);
+            color: #e0e7ff;
+            border: 1px solid rgba(91, 192, 222, 0.4);
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        .city-selector {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .city-selector select {
+            background: rgba(30, 50, 70, 0.7);
+            color: #e0e7ff;
+            border: 1px solid rgba(91, 192, 222, 0.4);
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+            min-width: 200px;
+        }
+        
+        .city-checkbox-selector {
+            display: none;
+            background: rgba(30, 50, 70, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid rgba(91, 192, 222, 0.4);
+        }
+        
+        .city-checkbox-selector h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #5bc0de;
+        }
+        
+        .city-checkbox-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .city-checkbox-item {
+            display: flex;
+            align-items: center;
+            margin: 5px;
+        }
+        
+        .city-checkbox-item input[type="checkbox"] {
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        
+        .city-checkbox-item label {
+            cursor: pointer;
+            color: #e0e7ff;
+        }
+        
+        .city-checkbox-item input[type="checkbox"]:checked + label {
+            color: #5bc0de;
+            font-weight: bold;
+        }
+        
+        .selection-info {
+            text-align: center;
+            margin-top: 10px;
+            color: #aaccff;
+            font-size: 0.9rem;
+        }
+        
+        .chart-container {
+            background: rgba(30, 50, 70, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(91, 192, 222, 0.2);
+        }
+        
+        #chart-display {
+            width: 100%;
+            height: 600px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        #chart-display:hover {
+            transform: scale(1.01);
+        }
+        
+        .city-label {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 1.2rem;
+            color: #5bc0de;
+            font-weight: bold;
+        }
+        
+        .back-button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 25px;
+            background: linear-gradient(90deg, #5bc0de, #4a90e2);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: bold;
+            text-align: center;
+            width: 200px;
+            transition: all 0.3s;
+        }
+        
+        .back-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        .instructions {
+            background: rgba(20, 40, 60, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #aaccff;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #5bc0de;
+            font-size: 1.2rem;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #ff6b6b;
+            font-size: 1.2rem;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background-color: #ff6b6b;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="page-title">数据分析详情</h1>
+            <p id="page-description">展示详细气象数据分析</p>
+        </div>
+        
+        <div class="chart-type-selector">
+            <label for="chart-type-select">选择图表类型: </label>
+            <select id="chart-type-select">
+                <option value="temperature">年平均气温</option>
+                <option value="weather">天气情况分布</option>
+                <option value="wind">风速与风向玫瑰图</option>
+            </select>
+        </div>
+        
+        <div class="city-selector" id="wind-city-selector">
+            <label for="wind-city-select">选择城市: </label>
+            <select id="wind-city-select">
+                <!-- 选项将通过JS动态生成 -->
+            </select>
+        </div>
+        
+        <div class="city-checkbox-selector" id="temperature-city-selector">
+            <h3>选择城市 (最多可选10个)</h3>
+            <div class="city-checkbox-container" id="temperature-city-checkbox">
+                <!-- 复选框将通过JS动态生成 -->
+            </div>
+            <div class="selection-info" id="temperature-selection-info">已选择 4 个城市</div>
+        </div>
+        
+        <div class="city-checkbox-selector" id="weather-city-selector">
+            <h3>选择城市 (最多可选10个)</h3>
+            <div class="city-checkbox-container" id="weather-city-checkbox">
+                <!-- 复选框将通过JS动态生成 -->
+            </div>
+            <div class="selection-info" id="weather-selection-info">已选择 4 个城市</div>
+        </div>
+        
+        <div class="chart-container">
+            <div id="chart-display">
+                <div class="loading">正在加载数据...</div>
+            </div>
+            <div class="city-label" id="city-name"></div>
+        </div>
+        
+        <a href="index.html" class="back-button">返回主页面</a>
+        
+        <div class="instructions" id="chart-instructions">
+            <p>💡 提示：这里将显示您选择的数据分析图表。</p>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">最多只能选择10个城市</div>
+
+    <script>
+        // 初始化图表
+        const chartDom = document.getElementById('chart-display');
+        const chart = echarts.init(chartDom);
+        const toast = document.getElementById('toast');
+        
+        // 省会城市列表及其坐标
+        const capitalCities = {
+            'beijing': { name: '北京', coordinates: [116.41, 39.90] },
+            'shanghai': { name: '上海', coordinates: [121.48, 31.22] },
+            'tianjin': { name: '天津', coordinates: [117.20, 39.13] },
+            'chongqing': { name: '重庆', coordinates: [106.54, 29.59] },
+            'haerbin': { name: '哈尔滨', coordinates: [126.63, 45.75] },
+            'changchun': { name: '长春', coordinates: [125.32, 43.90] },
+            'shenyang': { name: '沈阳', coordinates: [123.43, 41.80] },
+            'huhehaote': { name: '呼和浩特', coordinates: [111.65, 40.82] },
+            'shijiazhuang': { name: '石家庄', coordinates: [114.48, 38.03] },
+            'xining': { name: '西宁', coordinates: [101.74, 36.56] },
+            'lanzhou': { name: '兰州', coordinates: [103.73, 36.03] },
+            'yinchuan': { name: '银川', coordinates: [106.27, 38.47] },
+            'xian': { name: '西安', coordinates: [108.93, 34.27] },
+            'zhengzhou': { name: '郑州', coordinates: [113.62, 34.72] },
+            'jinan': { name: '济南', coordinates: [117.00, 36.65] },
+            'taiyuan': { name: '太原', coordinates: [112.53, 37.87] },
+            'hefei': { name: '合肥', coordinates: [117.27, 31.86] },
+            'wuhan': { name: '武汉', coordinates: [114.31, 30.52] },
+            'changsha': { name: '长沙', coordinates: [113.00, 28.21] },
+            'nanjing': { name: '南京', coordinates: [118.78, 32.04] },
+            'chengdu': { name: '成都', coordinates: [104.06, 30.67] },
+            'guiyang': { name: '贵阳', coordinates: [106.71, 26.57] },
+            'kunming': { name: '昆明', coordinates: [102.73, 25.04] },
+            'nanning': { name: '南宁', coordinates: [108.37, 22.82] },
+            'lasa': { name: '拉萨', coordinates: [91.11, 29.61] },
+            'hangzhou': { name: '杭州', coordinates: [120.19, 30.26] },
+            'fuzhou': { name: '福州', coordinates: [119.30, 26.08] },
+            'guangzhou': { name: '广州', coordinates: [113.23, 23.16] },
+            'haikou': { name: '海口', coordinates: [110.35, 20.02] },
+            'urumqi': { name: '乌鲁木齐', coordinates: [87.62, 43.82] }
+        };
+
+        // 默认选中的城市
+        const defaultSelectedCities = ['beijing', 'shanghai', 'guangzhou', 'chengdu'];
+        
+        // 存储历史数据
+        let historicalData = {};
+        
+        // 从URL获取参数
+        function getParamFromURL(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        
+        // 显示提示信息
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 生成城市选择复选框
+        function generateCityCheckboxes(containerId, infoElementId) {
+            const container = document.getElementById(containerId);
+            const infoElement = document.getElementById(infoElementId);
+            
+            // 清空容器
+            container.innerHTML = '';
+            
+            // 统计已选中的城市数量
+            let selectedCount = 0;
+            
+            // 为每个城市创建复选框
+            for (const [pinyin, cityInfo] of Object.entries(capitalCities)) {
+                const isChecked = defaultSelectedCities.includes(pinyin);
+                if (isChecked) selectedCount++;
+                
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'city-checkbox-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `${containerId}-${pinyin}`;
+                checkbox.value = pinyin;
+                checkbox.checked = isChecked;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `${containerId}-${pinyin}`;
+                label.textContent = cityInfo.name;
+                
+                checkboxItem.appendChild(checkbox);
+                checkboxItem.appendChild(label);
+                container.appendChild(checkboxItem);
+                
+                // 添加事件监听器
+                checkbox.addEventListener('change', function() {
+                    const selectedCities = getSelectedCities(containerId);
+                    
+                    if (this.checked && selectedCities.length > 10) {
+                        this.checked = false;
+                        showToast('最多只能选择10个城市');
+                        return;
+                    }
+                    
+                    // 更新选择信息
+                    updateSelectionInfo(containerId, infoElementId);
+                    
+                    // 重新渲染图表
+                    const chartType = document.getElementById('chart-type-select').value;
+                    if (chartType === 'temperature') {
+                        renderTemperatureChart();
+                    } else if (chartType === 'weather') {
+                        renderWeatherChart();
+                    }
+                });
+            }
+            
+            // 更新选择信息
+            infoElement.textContent = `已选择 ${selectedCount} 个城市`;
+        }
+        
+        // 获取选中的城市
+        function getSelectedCities(containerId) {
+            const container = document.getElementById(containerId);
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+        
+        // 更新选择信息
+        function updateSelectionInfo(containerId, infoElementId) {
+            const selectedCities = getSelectedCities(containerId);
+            const infoElement = document.getElementById(infoElementId);
+            infoElement.textContent = `已选择 ${selectedCities.length} 个城市`;
+        }
+        
+        // 生成风玫瑰图城市选择下拉菜单
+        function generateWindCitySelect() {
+            const selectElement = document.getElementById('wind-city-select');
+            
+            // 清空现有选项
+            selectElement.innerHTML = '';
+            
+            // 为每个城市创建选项
+            for (const [pinyin, cityInfo] of Object.entries(capitalCities)) {
+                const option = document.createElement('option');
+                option.value = pinyin;
+                option.textContent = cityInfo.name;
+                selectElement.appendChild(option);
+            }
+            
+            // 设置默认选中
+            selectElement.value = 'beijing';
+        }
+        
+        // 处理风向数据
+        function processWindData(cityPinyin) {
+            // 如果没有真实数据，生成模拟数据
+            if (!historicalData[cityPinyin]) {
+                return generateFallbackWindData();
+            }
+            
+            const cityData = historicalData[cityPinyin];
+            const windData = {};
+            let totalDays = 0;
+            
+            // 初始化8个方向的数据结构
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            directions.forEach(dir => {
+                windData[dir] = {
+                    totalSpeed: 0,
+                    count: 0,
+                    frequency: 0,
+                    avgSpeed: 0
+                };
+            });
+            
+            // 处理每条数据
+            cityData.data.forEach(day => {
+                if (day['风向风力']) {
+                    totalDays++;
+                    
+                    // 解析风向和风力
+                    const windInfo = parseWindInfo(day['风向风力']);
+                    
+                    if (windInfo.direction && windInfo.speed) {
+                        // 将中文风向转换为标准8方位
+                        const stdDirection = convertChineseWindDirectionTo8(windInfo.direction);
+                        
+                        if (windData[stdDirection]) {
+                            windData[stdDirection].totalSpeed += windInfo.speed;
+                            windData[stdDirection].count++;
+                        }
+                    }
+                }
+            });
+            
+            // 计算平均值和频率
+            directions.forEach(dir => {
+                if (windData[dir].count > 0) {
+                    windData[dir].avgSpeed = windData[dir].totalSpeed / windData[dir].count;
+                    windData[dir].frequency = (windData[dir].count / totalDays) * 100;
+                }
+            });
+            
+            return windData;
+        }
+        
+        // 解析风向风力字符串
+        function parseWindInfo(windStr) {
+            // 示例格式: "东北风 1级"
+            const directionMatch = windStr.match(/([\u4e00-\u9fa5]+风)/);
+            const speedMatch = windStr.match(/(\d+)级/);
+            
+            let direction = null;
+            let speed = 0;
+            
+            if (directionMatch) {
+                direction = directionMatch[1];
+            }
+            
+            if (speedMatch) {
+                speed = parseFloat(speedMatch[1]);
+                // 将风级转换为风速(km/h)，使用近似公式: 风速 ≈ 风级 * 5
+                speed = speed * 5;
+            }
+            
+            return { direction, speed };
+        }
+        
+        // 将中文风向转换为8个标准方向
+        function convertChineseWindDirectionTo8(chineseDir) {
+            // 更精确的映射
+            const directionMap = {
+                '北风': 'N',
+                '东北风': 'NE', 
+                '东风': 'E',
+                '东南风': 'SE',
+                '南风': 'S',
+                '西南风': 'SW',
+                '西风': 'W',
+                '西北风': 'NW',
+                '北': 'N',
+                '东北': 'NE', 
+                '东': 'E',
+                '东南': 'SE',
+                '南': 'S',
+                '西南': 'SW',
+                '西': 'W',
+                '西北': 'NW'
+            };
+            
+            // 尝试精确匹配
+            if (directionMap[chineseDir]) {
+                return directionMap[chineseDir];
+            }
+            
+            // 尝试包含匹配
+            for (const key in directionMap) {
+                if (chineseDir.includes(key)) {
+                    return directionMap[key];
+                }
+            }
+            
+            console.warn(`无法识别风向: ${chineseDir}，使用默认值北风`);
+            return 'N'; // 默认返回北风
+        }
+        
+        // 生成备用数据（当真实数据不可用时）
+        function generateFallbackWindData() {
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            const windData = {};
+            
+            directions.forEach(dir => {
+                windData[dir] = {
+                    avgSpeed: Math.random() * 15 + 5,
+                    frequency: Math.random() * 15 + 5
+                };
+            });
+            
+            return windData;
+        }
+        
+        // 加载历史数据
+        async function loadHistoricalData() {
+            const dataLoadPromises = [];
+            
+            for (const [cityPinyin, cityInfo] of Object.entries(capitalCities)) {
+                const promise = fetch(`data/${cityPinyin}.json`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`网络响应不正常: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        historicalData[cityPinyin] = {
+                            name: cityInfo.name,
+                            coordinates: cityInfo.coordinates,
+                            data: data
+                        };
+                        console.log(`${cityInfo.name}历史数据加载成功`, data);
+                    })
+                    .catch(error => {
+                        console.error(`加载 ${cityInfo.name} 历史数据失败:`, error);
+                        // 使用模拟历史数据作为后备
+                        historicalData[cityPinyin] = {
+                            name: cityInfo.name,
+                            coordinates: cityInfo.coordinates,
+                            data: generateSimulatedHistoricalData(cityInfo.name)
+                        };
+                    });
+                
+                dataLoadPromises.push(promise);
+            }
+            
+            await Promise.allSettled(dataLoadPromises);
+            console.log('历史数据加载完成', historicalData);
+            
+            // 初始化图表
+            initChart();
+        }
+        
+        // 生成模拟历史数据（与index.html中的函数相同）
+        function generateSimulatedHistoricalData(cityName) {
+            const data = [];
+            const startDate = new Date(2020, 0, 1);
+            
+            for (let i = 0; i < 365 * 3; i++) { // 3年的数据
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+                
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+                const weekDay = weekDays[currentDate.getDay()];
+                
+                // 根据城市和季节生成不同的温度
+                let baseTemp = 15;
+                if (cityName.includes('北京') || cityName.includes('哈尔滨')) {
+                    baseTemp = 10;
+                } else if (cityName.includes('广州') || cityName.includes('海口')) {
+                    baseTemp = 25;
+                }
+                
+                // 季节影响
+                const month = currentDate.getMonth();
+                let seasonalEffect = 0;
+                if (month >= 2 && month <= 4) { // 春季
+                    seasonalEffect = 5;
+                } else if (month >= 5 && month <= 7) { // 夏季
+                    seasonalEffect = 15;
+                } else if (month >= 8 && month <= 10) { // 秋季
+                    seasonalEffect = 5;
+                } else { // 冬季
+                    seasonalEffect = -5;
+                }
+                
+                const highTemp = Math.round(baseTemp + seasonalEffect + (Math.random() * 10 - 5));
+                const lowTemp = Math.round(highTemp - 5 - Math.random() * 5);
+                
+                const weatherTypes = ['晴', '多云', '阴', '小雨', '中雨', '大雨', '雪'];
+                const weather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+                
+                const windDirections = ['北风', '东北风', '东风', '东南风', '南风', '西南风', '西风', '西北风'];
+                const windDirection = windDirections[Math.floor(Math.random() * windDirections.length)];
+                const windLevel = Math.floor(Math.random() * 5) + 1;
+                
+                data.push({
+                    "日期": `${dateStr} ${weekDay}`,
+                    "最高温": `${highTemp}℃`,
+                    "最低温": `${lowTemp}℃`,
+                    "天气": weather,
+                    "风向风力": `${windDirection} ${windLevel}级`
+                });
+            }
+            
+            return data;
+        }
+        
+        // 处理温度数据，从字符串中提取数字
+        function parseTemperature(tempStr) {
+            if (!tempStr) return null;
+            const match = tempStr.match(/(-?\d+)℃/);
+            return match ? parseInt(match[1]) : null;
+        }
+        
+        // 计算城市年平均气温
+        function calculateYearlyAverageTemperatures(cityData) {
+            const yearlyTemps = {};
+            
+            cityData.data.forEach(day => {
+                const datePart = day.日期.split(' ')[0]; // 获取日期部分
+                const date = new Date(datePart);
+                // 检查日期是否有效
+                if (isNaN(date.getTime())) {
+                    console.warn('无效日期:', day.日期);
+                    return;
+                }
+                
+                const year = date.getFullYear();
+                
+                if (!yearlyTemps[year]) {
+                    yearlyTemps[year] = {
+                        sum: 0,
+                        count: 0
+                    };
+                }
+                
+                const highTemp = parseTemperature(day.最高温);
+                const lowTemp = parseTemperature(day.最低温);
+                
+                if (highTemp !== null && lowTemp !== null) {
+                    const avgTemp = (highTemp + lowTemp) / 2;
+                    yearlyTemps[year].sum += avgTemp;
+                    yearlyTemps[year].count++;
+                }
+            });
+            
+            const result = {};
+            for (const [year, data] of Object.entries(yearlyTemps)) {
+                if (data.count > 0) {
+                    result[year] = data.sum / data.count;
+                }
+            }
+            
+            return result;
+        }
+        
+        // 计算天气情况分布
+        function calculateWeatherDistribution(cityData) {
+            const weatherCount = {};
+            let totalDays = 0;
+            
+            cityData.data.forEach(day => {
+                if (day.天气) {
+                    // 处理复合天气情况，如"晴转多云"
+                    const weathers = day.天气.split(/转|到|,/);
+                    weathers.forEach(weather => {
+                        const trimmedWeather = weather.trim();
+                        if (trimmedWeather) {
+                            weatherCount[trimmedWeather] = (weatherCount[trimmedWeather] || 0) + 1;
+                            totalDays++;
+                        }
+                    });
+                }
+            });
+            
+            // 转换为百分比
+            const result = {};
+            for (const [weather, count] of Object.entries(weatherCount)) {
+                result[weather] = (count / totalDays) * 100;
+            }
+            
+            return result;
+        }
+        
+        // 渲染温度图表
+        function renderTemperatureChart() {
+            // 清除可能存在的其他图表
+            chart.clear();
+            
+            // 获取用户选择的城市
+            const selectedCityPinyins = getSelectedCities('temperature-city-checkbox');
+            
+            // 如果没有选中任何城市，使用默认城市
+            if (selectedCityPinyins.length === 0) {
+                selectedCityPinyins.push(...defaultSelectedCities);
+                // 更新复选框状态
+                defaultSelectedCities.forEach(city => {
+                    const checkbox = document.getElementById(`temperature-city-checkbox-${city}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+                updateSelectionInfo('temperature-city-checkbox', 'temperature-selection-info');
+            }
+            
+            const cityData = [];
+            const temperatures = [];
+            
+            // 从历史数据中提取选定城市的温度数据
+            selectedCityPinyins.forEach(cityPinyin => {
+                if (historicalData[cityPinyin]) {
+                    const cityInfo = historicalData[cityPinyin];
+                    const yearlyTemps = calculateYearlyAverageTemperatures(cityInfo);
+                    
+                    // 获取最近一年的温度数据
+                    const years = Object.keys(yearlyTemps).sort();
+                    if (years.length > 0) {
+                        const latestYear = years[years.length - 1];
+                        cityData.push({
+                            name: cityInfo.name,
+                            temperature: yearlyTemps[latestYear]
+                        });
+                    }
+                }
+            });
+            
+            // 准备图表数据
+            const cityNames = cityData.map(item => item.name);
+            const tempValues = cityData.map(item => item.temperature ? item.temperature.toFixed(1) : 0);
+            
+            const option = {
+                title: {
+                    text: '城市年平均气温',
+                    left: 'center',
+                    textStyle: {
+                        color: '#5bc0de',
+                        fontSize: 20
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    formatter: function(params) {
+                        return `${params[0].name}<br/>平均气温: ${params[0].value}°C`;
+                    },
+                    backgroundColor: 'rgba(10, 25, 40, 0.9)',
+                    borderColor: 'rgba(91, 192, 222, 0.5)',
+                    textStyle: {
+                        color: '#e0f0ff'
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: cityNames,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        interval: 0,
+                        rotate: cityNames.length > 8 ? 45 : 0
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '温度 °C',
+                    nameTextStyle: {
+                        color: '#aaccff'
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: 'rgba(91, 192, 222, 0.1)'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        formatter: '{value}°C'
+                    }
+                },
+                series: [{
+                    name: '年平均气温',
+                    type: 'bar',
+                    data: tempValues,
+                    itemStyle: {
+                        color: function(params) {
+                            // 根据温度值设置颜色
+                            const temp = params.value;
+                            if (temp < 0) return '#313695';
+                            if (temp < 10) return '#4575b4';
+                            if (temp < 20) return '#74add1';
+                            if (temp < 25) return '#abd9e9';
+                            if (temp < 30) return '#ffffbf';
+                            if (temp < 35) return '#fee090';
+                            return '#f46d43';
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        color: '#e0f0ff',
+                        formatter: '{c}°C'
+                    }
+                }]
+            };
+            
+            chart.setOption(option);
+            
+            // 更新说明文本
+            document.getElementById('chart-instructions').innerHTML = `
+                <p>💡 提示：此图表展示了选定城市的年平均气温对比。</p>
+                <p>不同颜色表示不同的温度范围，条形高度表示温度数值。</p>
+                <p>您可以通过上方的城市选择器添加或移除城市。</p>
+            `;
+        }
+        
+        // 渲染天气分布图表
+        function renderWeatherChart() {
+            // 清除可能存在的其他图表
+            chart.clear();
+            
+            // 获取用户选择的城市
+            const selectedCityPinyins = getSelectedCities('weather-city-checkbox');
+            
+            // 如果没有选中任何城市，使用默认城市
+            if (selectedCityPinyins.length === 0) {
+                selectedCityPinyins.push(...defaultSelectedCities);
+                // 更新复选框状态
+                defaultSelectedCities.forEach(city => {
+                    const checkbox = document.getElementById(`weather-city-checkbox-${city}`);
+                    if (checkbox) checkbox.checked = true;
+                });
+                updateSelectionInfo('weather-city-checkbox', 'weather-selection-info');
+            }
+            
+            // 处理数据：计算每个城市的天气情况分布
+            const cityWeatherData = {};
+            
+            selectedCityPinyins.forEach(cityPinyin => {
+                if (historicalData[cityPinyin]) {
+                    const weatherDistribution = calculateWeatherDistribution(historicalData[cityPinyin]);
+                    cityWeatherData[historicalData[cityPinyin].name] = weatherDistribution;
+                }
+            });
+            
+            // 获取所有天气类型并按出现频率排序
+            const allWeatherTypes = new Set();
+            Object.values(cityWeatherData).forEach(distribution => {
+                Object.keys(distribution).forEach(weather => {
+                    allWeatherTypes.add(weather);
+                });
+            });
+            
+            // 计算每种天气类型的总出现频率
+            const weatherFrequency = {};
+            allWeatherTypes.forEach(weather => {
+                weatherFrequency[weather] = 0;
+                Object.values(cityWeatherData).forEach(distribution => {
+                    weatherFrequency[weather] += distribution[weather] || 0;
+                });
+            });
+            
+            // 按频率排序并选择前5种主要天气类型
+            const sortedWeatherTypes = Array.from(allWeatherTypes).sort((a, b) => {
+                return weatherFrequency[b] - weatherFrequency[a];
+            });
+            
+            const mainWeatherTypes = sortedWeatherTypes.slice(0, 5);
+            mainWeatherTypes.push('其他'); // 添加"其他"类别
+            
+            // 重组数据，将非主要天气类型合并到"其他"
+            const processedCityData = {};
+            Object.entries(cityWeatherData).forEach(([city, distribution]) => {
+                processedCityData[city] = {};
+                let otherPercentage = 0;
+                
+                Object.entries(distribution).forEach(([weather, percentage]) => {
+                    if (mainWeatherTypes.includes(weather)) {
+                        processedCityData[city][weather] = percentage;
+                    } else {
+                        otherPercentage += percentage;
+                    }
+                });
+                
+                if (otherPercentage > 0) {
+                    processedCityData[city]['其他'] = otherPercentage;
+                }
+                
+                // 确保所有主要天气类型都有值（即使为0）
+                mainWeatherTypes.forEach(weather => {
+                    if (!processedCityData[city][weather]) {
+                        processedCityData[city][weather] = 0;
+                    }
+                });
+            });
+            
+            // 获取城市列表
+            const selectedCities = Object.keys(processedCityData);
+            const seriesData = [];
+            
+            mainWeatherTypes.forEach(weather => {
+                const data = selectedCities.map(city => {
+                    return processedCityData[city][weather] || 0;
+                });
+                
+                seriesData.push({
+                    name: weather,
+                    type: 'bar',
+                    stack: '总量',
+                    data: data,
+                    emphasis: {
+                        focus: 'series'
+                    }
+                });
+            });
+            
+            const option = {
+                title: {
+                    text: '城市天气情况分布',
+                    left: 'center',
+                    textStyle: {
+                        color: '#5bc0de',
+                        fontSize: 20
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    formatter: function(params) {
+                        let result = params[0].name + '<br/>';
+                        let total = 0;
+                        
+                        params.forEach(param => {
+                            result += `${param.seriesName}: ${param.value.toFixed(1)}%<br/>`;
+                            total += param.value;
+                        });
+                        
+                        result += `<hr style="margin: 5px 0; border: none; border-top: 1px solid #ccc;"/>`;
+                        result += `总计: ${total.toFixed(1)}%`;
+                        
+                        return result;
+                    },
+                    backgroundColor: 'rgba(10, 25, 40, 0.9)',
+                    borderColor: 'rgba(91, 192, 222, 0.5)',
+                    textStyle: {
+                        color: '#e0f0ff'
+                    }
+                },
+                legend: {
+                    data: mainWeatherTypes,
+                    textStyle: {
+                        color: '#aaccff'
+                    },
+                    top: 50,
+                    right: 10,
+                    selectedMode: true,
+                    type: 'scroll'
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '25%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: selectedCities,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        interval: 0,
+                        rotate: selectedCities.length > 8 ? 45 : 0
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '出现概率(%)',
+                    nameTextStyle: {
+                        color: '#aaccff'
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: 'rgba(91, 192, 222, 0.1)'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        formatter: '{value}%'
+                    }
+                },
+                series: seriesData
+            };
+            
+            chart.setOption(option);
+            
+            // 更新说明文本
+            document.getElementById('chart-instructions').innerHTML = `
+                <p>💡 提示：此图表展示了选定城市的天气情况分布。</p>
+                <p>不同颜色表示不同的天气类型，堆叠高度表示该天气类型的出现概率。</p>
+                <p>您可以通过上方的城市选择器添加或移除城市。</p>
+            `;
+        }
+        
+        // 渲染风玫瑰图
+        function renderWindRoseChart(city) {
+            // 清除可能存在的其他图表
+            chart.clear();
+            
+            const windData = processWindData(city);
+            
+            // 设置城市名称
+            document.getElementById('city-name').textContent = capitalCities[city]?.name || '未知城市';
+            
+            // 准备图表数据
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            const chartData = [];
+            const frequencyData = [];
+            
+            directions.forEach(dir => {
+                if (windData[dir]) {
+                    chartData.push({
+                        value: windData[dir].avgSpeed,
+                        name: directionMap[dir]
+                    });
+                    frequencyData.push(windData[dir].frequency);
+                } else {
+                    // 确保所有方向都有数据，即使为0
+                    chartData.push({
+                        value: 0,
+                        name: directionMap[dir]
+                    });
+                    frequencyData.push(0);
+                }
+            });
+            
+            // 方向映射 (英文到中文)
+            const directionMap = {
+                'N': '北',
+                'NE': '东北',
+                'E': '东',
+                'SE': '东南',
+                'S': '南',
+                'SW': '西南',
+                'W': '西',
+                'NW': '西北'
+            };
+            
+            // 配置选项
+            const option = {
+                title: {
+                    text: '风速与风向分布',
+                    left: 'center',
+                    textStyle: {
+                        color: '#5bc0de',
+                        fontSize: 20
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const index = params.dataIndex;
+                        return `${params.name}风<br/>平均风速: ${params.value.toFixed(1)} km/h<br/>出现频率: ${frequencyData[index].toFixed(1)}%`;
+                    },
+                    backgroundColor: 'rgba(10, 25, 40, 0.9)',
+                    borderColor: 'rgba(91, 192, 222, 0.5)',
+                    textStyle: {
+                        color: '#e0f0ff'
+                    }
+                },
+                legend: {
+                    orient: 'horizontal',
+                    bottom: 10,
+                    data: Object.values(directionMap),
+                    textStyle: {
+                        color: '#aaccff'
+                    }
+                },
+                polar: {
+                    radius: '70%'
+                },
+                angleAxis: {
+                    type: 'category',
+                    data: Object.values(directionMap),
+                    startAngle: 90,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        fontSize: 14
+                    }
+                },
+                radiusAxis: {
+                    min: 0,
+                    axisLine: {
+                        lineStyle: {
+                            color: '#5bc0de'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#aaccff',
+                        formatter: '{value} km/h'
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: 'rgba(91, 192, 222, 0.2)'
+                        }
+                    }
+                },
+                series: [{
+                    type: 'bar',
+                    coordinateSystem: 'polar',
+                    data: chartData,
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    },
+                    itemStyle: {
+                        color: function(params) {
+                            // 根据频率设置颜色
+                            const frequency = frequencyData[params.dataIndex];
+                            if (frequency < 5) return '#74add1';
+                            if (frequency < 10) return '#abd9e9';
+                            if (frequency < 15) return '#fee090';
+                            if (frequency < 20) return '#fdae61';
+                            return '#f46d43';
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'middle',
+                        formatter: '{b}',
+                        color: '#fff',
+                        fontWeight: 'bold'
+                    }
+                }]
+            };
+            
+            // 设置选项并渲染图表
+            chart.setOption(option);
+            
+            // 更新说明文本
+            document.getElementById('chart-instructions').innerHTML = `
+                <p>💡 提示：玫瑰图展示了八个主要方向（北、东北、东、东南、南、西南、西、西北）的风速和风向分布情况。</p>
+                <p>条形长度表示平均风速，颜色表示出现频率。</p>
+            `;
+        }
+        
+        // 初始化页面
+        function initPage() {
+            // 生成城市选择器
+            generateCityCheckboxes('temperature-city-checkbox', 'temperature-selection-info');
+            generateCityCheckboxes('weather-city-checkbox', 'weather-selection-info');
+            generateWindCitySelect();
+            
+            // 获取当前图表类型
+            const chartType = getParamFromURL('chart') || 'wind';
+            
+            // 设置下拉菜单默认值
+            const chartTypeSelect = document.getElementById('chart-type-select');
+            if (chartTypeSelect) {
+                chartTypeSelect.value = chartType;
+                
+                // 添加图表类型切换事件
+                chartTypeSelect.addEventListener('change', function() {
+                    // 更新URL参数但不刷新页面
+                    const newUrl = new URL(window.location);
+                    newUrl.searchParams.set('chart', this.value);
+                    window.history.replaceState({}, '', newUrl);
+                    
+                    // 重新初始化图表
+                    initChart();
+                });
+            }
+            
+            // 设置城市选择器默认值
+            const windCitySelect = document.getElementById('wind-city-select');
+            if (windCitySelect) {
+                // 添加城市切换事件
+                windCitySelect.addEventListener('change', function() {
+                    if (document.getElementById('chart-type-select').value === 'wind') {
+                        renderWindRoseChart(this.value);
+                    }
+                });
+            }
+            
+            // 加载历史数据并初始化图表
+            loadHistoricalData();
+        }
+        
+        // 初始化图表
+        function initChart() {
+            const chartType = getParamFromURL('chart') || 'wind';
+            
+            // 更新页面标题和描述
+            const titles = {
+                'temperature': '年平均气温分析',
+                'weather': '天气情况分布分析',
+                'wind': '风速与风向玫瑰图'
+            };
+            
+            const descriptions = {
+                'temperature': '展示主要城市年平均气温对比',
+                'weather': '展示全国各地天气情况分布',
+                'wind': '展示八方向风速与风向分布情况'
+            };
+            
+            document.getElementById('page-title').textContent = titles[chartType];
+            document.getElementById('page-description').textContent = descriptions[chartType];
+            
+            // 根据图表类型显示/隐藏城市选择器
+            const windCitySelector = document.getElementById('wind-city-selector');
+            const tempCitySelector = document.getElementById('temperature-city-selector');
+            const weatherCitySelector = document.getElementById('weather-city-selector');
+            
+            if (windCitySelector && tempCitySelector && weatherCitySelector) {
+                if (chartType === 'wind') {
+                    windCitySelector.style.display = 'block';
+                    tempCitySelector.style.display = 'none';
+                    weatherCitySelector.style.display = 'none';
+                } else if (chartType === 'temperature') {
+                    windCitySelector.style.display = 'none';
+                    tempCitySelector.style.display = 'block';
+                    weatherCitySelector.style.display = 'none';
+                } else if (chartType === 'weather') {
+                    windCitySelector.style.display = 'none';
+                    tempCitySelector.style.display = 'none';
+                    weatherCitySelector.style.display = 'block';
+                }
+            }
+            
+            // 根据图表类型渲染不同的图表
+            if (chartType === 'temperature') {
+                renderTemperatureChart();
+            } else if (chartType === 'weather') {
+                renderWeatherChart();
+            } else {
+                // 默认显示风玫瑰图
+                const city = getParamFromURL('city') || 'beijing';
+                const citySelect = document.getElementById('wind-city-select');
+                if (citySelect) {
+                    citySelect.value = city;
+                }
+                renderWindRoseChart(city);
+            }
+            
+            // 移除加载提示
+            const loadingElement = chartDom.querySelector('.loading');
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+        }
+        
+        // 初始化页面
+        initPage();
+        
+        // 响应窗口大小变化
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    </script>
+</body>
+</html>

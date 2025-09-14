@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国主要城市实时天气地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #e0e7ff;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            padding: 1rem 2rem;
+            background: rgba(10, 30, 50, 0.85);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(91, 192, 222, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(15, 40, 65, 0.9);
+            color: #5bc0de;
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: rgba(25, 60, 95, 0.9);
+            transform: translateX(-3px);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #5bc0de;
+        }
+        
+        .logo-icon {
+            font-size: 2rem;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #weather-map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(15, 40, 65, 0.9);
+            padding: 15px 20px;
+            border-radius: 15px;
+            min-width: 250px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            color: #9be6ff;
+            z-index: 100;
+            display: none;
+        }
+        
+        .info-title {
+            color: #5bc0de;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-content {
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 8px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .info-label {
+            color: #9be6ff;
+            font-weight: 500;
+        }
+        
+        .info-value {
+            color: #ffcc00;
+            font-weight: 600;
+            text-align: right;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(15, 40, 65, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            min-width: 200px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            z-index: 100;
+        }
+        
+        .legend-title {
+            color: #5bc0de;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .legend-scale {
+            height: 20px;
+            background: linear-gradient(to right, #00a0ff, #00d4ff, #2ae0c8, #80ff72, #f9f871, #ffb978, #ff7b7b, #ff3e3e);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #aaccff;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 25, 40, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #5bc0de;
+            font-size: 1.2rem;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(91, 192, 222, 0.3);
+            border-top: 5px solid #5bc0de;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 40, 65, 0.9);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #5bc0de;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+            box-shadow: 0 0 8px #4CAF50;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        .refresh-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 40, 65, 0.9);
+            color: #5bc0de;
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .refresh-btn:hover {
+            background: rgba(25, 60, 95, 0.9);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        
+        .legend-symbol {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .temp-indicator {
+            position: absolute;
+            background: rgba(15, 40, 65, 0.9);
+            padding: 8px 12px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            color: #ffcc00;
+            font-weight: 600;
+            z-index: 99;
+            display: none;
+            pointer-events: none;
+        }
+        
+        .humidity-indicator {
+            position: absolute;
+            background: rgba(15, 40, 65, 0.9);
+            padding: 8px 12px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(91, 192, 222, 0.3);
+            color: #00d4ff;
+            font-weight: 600;
+            z-index: 99;
+            display: none;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-left">
+                <a href="index.html" class="back-btn">
+                    <span>←</span> 返回首页
+                </a>
+                <div class="logo">
+                    <span class="logo-icon">🌦️</span>
+                    <span>中国主要城市实时天气地图</span>
+                </div>
+            </div>
+        </header>
+        
+        <div class="map-container">
+            <div id="weather-map"></div>
+            
+            <div class="info-panel" id="info-panel">
+                <div class="info-title">
+                    <span>📍</span> 城市天气信息
+                </div>
+                <div class="info-content">
+                    <div class="info-label">城市:</div><div class="info-value" id="city-name">—</div>
+                    <div class="info-label">温度:</div><div class="info-value" id="temp-value">—</div>
+                    <div class="info-label">天气:</div><div class="info-value" id="weather-value">—</div>
+                    <div class="info-label">风速:</div><div class="info-value" id="wind-value">—</div>
+                    <div class="info-label">风向:</div><div class="info-value" id="wind-dir">—</div>
+                    <div class="info-label">湿度:</div><div class="info-value" id="humidity-value">—</div>
+                    <div class="info-label">降雨量:</div><div class="info-value" id="rainfall-value">—</div>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-title">温度 (°C)</div>
+                <div class="legend-scale"></div>
+                <div class="legend-labels">
+                    <span>-20</span>
+                    <span>0</span>
+                    <span>20</span>
+                    <span>40</span>
+                </div>
+                
+                <div class="legend-title" style="margin-top: 15px;">降雨量 (mm)</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(0, 100, 255, 0.3);"></div>
+                    <span>小雨 (0-2.5)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(0, 100, 255, 0.6);"></div>
+                    <span>中雨 (2.5-7.6)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(0, 100, 255, 0.9);"></div>
+                    <span>大雨 (>7.6)</span>
+                </div>
+                
+                <div class="legend-title" style="margin-top: 15px;">风向符号</div>
+                <div class="legend-item">
+                    <div class="legend-symbol">⬇️</div>
+                    <span>北风</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol">↙️</div>
+                    <span>东北风</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol">⬅️</div>
+                    <span>西风</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol">↖️</div>
+                    <span>西北风</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol">⬆️</div>
+                    <span>南风</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol">↗️</div>
+                    <span>东南风</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol">➡️</div>
+                    <span>东风</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-symbol">↘️</div>
+                    <span>西南风</span>
+                </div>
+            </div>
+            
+            <button class="refresh-btn" id="refresh-btn">
+                <span>🔄</span> 刷新数据
+            </button>
+            
+            <div class="status-bar">
+                <span class="status-indicator"></span>
+                <span id="status-text">数据加载中...</span>
+            </div>
+            
+            <div class="loading" id="loading-overlay">
+                <div class="spinner"></div>
+                <div>正在加载地图数据...</div>
+            </div>
+            
+            <div class="temp-indicator" id="temp-indicator"></div>
+            <div class="humidity-indicator" id="humidity-indicator"></div>
+        </div>
+    </div>
+
+    <script>
+        // 主要城市列表（与getdata.py中的province_capitals一致）
+        const capitalCities = {
+            'beijing': { name: '北京', coordinates: [116.41, 39.90] },
+            'shanghai': { name: '上海', coordinates: [121.48, 31.22] },
+            'tianjin': { name: '天津', coordinates: [117.20, 39.13] },
+            'chongqing': { name: '重庆', coordinates: [106.54, 29.59] },
+            'shijiazhuang': { name: '石家庄', coordinates: [114.48, 38.03] },
+            'taiyuan': { name: '太原', coordinates: [112.53, 37.87] },
+            'huhehaote': { name: '呼和浩特', coordinates: [111.65, 40.82] },
+            'shenyang': { name: '沈阳', coordinates: [123.43, 41.80] },
+            'changchun': { name: '长春', coordinates: [125.32, 43.90] },
+            'haerbin': { name: '哈尔滨', coordinates: [126.63, 45.75] },
+            'nanjing': { name: '南京', coordinates: [118.78, 32.04] },
+            'hangzhou': { name: '杭州', coordinates: [120.19, 30.26] },
+            'hefei': { name: '合肥', coordinates: [117.27, 31.86] },
+            'fuzhou': { name: '福州', coordinates: [119.30, 26.08] },
+            'nanchang': { name: '南昌', coordinates: [115.89, 28.68] },
+            'jinan': { name: '济南', coordinates: [117.00, 36.65] },
+            'zhengzhou': { name: '郑州', coordinates: [113.62, 34.72] },
+            'wuhan': { name: '武汉', coordinates: [114.31, 30.52] },
+            'changsha': { name: '长沙', coordinates: [113.00, 28.21] },
+            'guangzhou': { name: '广州', coordinates: [113.23, 23.16] },
+            'nanning': { name: '南宁', coordinates: [108.37, 22.82] },
+            'haikou': { name: '海口', coordinates: [110.35, 20.02] },
+            'chengdu': { name: '成都', coordinates: [104.06, 30.67] },
+            'guiyang': { name: '贵阳', coordinates: [106.71, 26.57] },
+            'kunming': { name: '昆明', coordinates: [102.73, 25.04] },
+            'lasa': { name: '拉萨', coordinates: [91.11, 29.61] },
+            'xian': { name: '西安', coordinates: [108.93, 34.27] },
+            'lanzhou': { name: '兰州', coordinates: [103.73, 36.03] },
+            'xining': { name: '西宁', coordinates: [101.74, 36.56] },
+            'yinchuan': { name: '银川', coordinates: [106.27, 38.47] },
+            'wulumuqi': { name: '乌鲁木齐', coordinates: [87.62, 43.82] }
+        };
+
+        // 全局变量
+        let weatherMap;
+        let weatherData = {};
+        const API_BASE = 'http://localhost:5000/api';
+
+        // 风向符号映射
+        const windDirectionSymbols = {
+            '北': '⬇️',
+            '东北': '↙️',
+            '东': '⬅️',
+            '东南': '↖️',
+            '南': '⬆️',
+            '西南': '↗️',
+            '西': '➡️',
+            '西北': '↘️'
+        };
+
+        // 风向角度映射
+        const windDirectionAngles = {
+            '北': 0,
+            '东北': 45,
+            '东': 90,
+            '东南': 135,
+            '南': 180,
+            '西南': 225,
+            '西': 270,
+            '西北': 315
+        };
+
+        // 初始化地图
+        function initMap() {
+            weatherMap = echarts.init(document.getElementById('weather-map'));
+            
+            // 加载中国地图GeoJSON
+            fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+                .then(response => response.json())
+                .then(chinaGeoJson => {
+                    // 注册地图
+                    echarts.registerMap('china', chinaGeoJson);
+                    
+                    // 设置地图选项
+                    const option = {
+                        backgroundColor: 'transparent',
+                        geo: {
+                            map: 'china',
+                            roam: true,
+                            center: [104.0, 36.0],
+                            zoom: 3.5,
+                            label: {
+                                emphasis: {
+                                    show: true,
+                                    color: '#fff'
+                                }
+                            },
+                            itemStyle: {
+                                areaColor: 'rgba(20, 40, 80, 0.6)',
+                                borderColor: '#3a6990',
+                                borderWidth: 1.5
+                            },
+                            emphasis: {
+                                itemStyle: {
+                                    areaColor: 'rgba(40, 100, 180, 0.7)'
+                                }
+                            }
+                        },
+                        series: [
+                            {
+                                name: '风向',
+                                type: 'scatter',
+                                coordinateSystem: 'geo',
+                                symbol: 'triangle',
+                                symbolRotate: function (params) {
+                                    // 根据风向旋转符号
+                                    const windDir = params[3] || '北';
+                                    return windDirectionAngles[windDir] || 0;
+                                },
+                                symbolSize: function (params) {
+                                    // 根据风速调整点的大小
+                                    const windSpeed = params[2] || 5;
+                                    return Math.max(15, Math.min(30, windSpeed * 1.5));
+                                },
+                                itemStyle: {
+                                    color: function (params) {
+                                        // 根据风速设置颜色
+                                        const windSpeed = params.data[2] || 5;
+                                        if (windSpeed < 10) return '#aaccff';
+                                        if (windSpeed < 20) return '#77aaff';
+                                        return '#5588ff';
+                                    }
+                                },
+                                data: [],
+                                emphasis: {
+                                    itemStyle: {
+                                        borderColor: '#fff',
+                                        borderWidth: 2
+                                    }
+                                }
+                            }
+                        ]
+                    };
+                    
+                    weatherMap.setOption(option);
+                    
+                    // 加载天气数据
+                    loadWeatherData();
+                    
+                    // 隐藏加载界面
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    document.getElementById('status-text').textContent = '数据加载完成';
+                })
+                .catch(error => {
+                    console.error('加载地图数据失败:', error);
+                    document.getElementById('status-text').textContent = '地图数据加载失败';
+                });
+        }
+
+        // 加载天气数据
+        async function loadWeatherData() {
+            document.getElementById('status-text').textContent = '正在获取天气数据...';
+            
+            const dataLoadPromises = [];
+            
+            for (const [cityPinyin, cityInfo] of Object.entries(capitalCities)) {
+                dataLoadPromises.push(
+                    fetch(`${API_BASE}/weather/${cityPinyin}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('网络响应不正常');
+                            return response.json();
+                        })
+                        .then(data => {
+                            weatherData[cityPinyin] = {
+                                name: cityInfo.name,
+                                coordinates: cityInfo.coordinates,
+                                data: data
+                            };
+                        })
+                        .catch(error => {
+                            console.error(`获取${cityInfo.name}天气数据失败:`, error);
+                            // 使用模拟数据作为后备
+                            weatherData[cityPinyin] = {
+                                name: cityInfo.name,
+                                coordinates: cityInfo.coordinates,
+                                data: generateSimulatedData(cityInfo.name)
+                            };
+                        })
+                );
+            }
+            
+            await Promise.allSettled(dataLoadPromises);
+            updateMapWithWeatherData();
+        }
+
+        // 生成模拟数据（当API不可用时使用）
+        function generateSimulatedData(cityName) {
+            const baseTemps = {
+                '北京': 28, '上海': 30, '广州': 32, '成都': 26,
+                '哈尔滨': 22, '海口': 34, '昆明': 24, '乌鲁木齐': 20
+            };
+
+            const weatherTypes = ['晴', '多云', '阴', '小雨', '中雨', '大雨', '雷阵雨'];
+            const windDirections = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
+
+            return {
+                current_temp: baseTemps[cityName] || 25 + Math.floor(Math.random() * 10),
+                weather: weatherTypes[Math.floor(Math.random() * weatherTypes.length)],
+                humidity: Math.floor(40 + Math.random() * 40) + '%',
+                wind_direction: windDirections[Math.floor(Math.random() * windDirections.length)],
+                wind_speed: 5 + Math.floor(Math.random() * 15),
+                rainfall: Math.floor(Math.random() * 20) // 模拟降雨量
+            };
+        }
+
+        // 用天气数据更新地图
+        function updateMapWithWeatherData() {
+            const windData = [];
+            
+            for (const [cityPinyin, cityData] of Object.entries(weatherData)) {
+                const data = cityData.data;
+                
+                // 风向数据
+                windData.push({
+                    name: cityData.name,
+                    value: [
+                        cityData.coordinates[0],
+                        cityData.coordinates[1],
+                        data.wind_speed || 5,
+                        data.wind_direction || '北',
+                        data.current_temp || 20,
+                        data.humidity || '50%',
+                        data.weather || '晴',
+                        data.rainfall || 0
+                    ]
+                });
+            }
+            
+            weatherMap.setOption({
+                series: [
+                    {
+                        data: windData
+                    }
+                ]
+            });
+            
+            // 添加点击和悬停事件
+            weatherMap.off('click');
+            weatherMap.off('mouseover');
+            weatherMap.off('mouseout');
+            
+            weatherMap.on('click', function (params) {
+                updateInfoPanel(params);
+            });
+            
+            weatherMap.on('mouseover', function (params) {
+                updateInfoPanel(params);
+                
+                // 显示温度指示器
+                const tempIndicator = document.getElementById('temp-indicator');
+                tempIndicator.textContent = params.data.value[4] + '°C';
+                tempIndicator.style.display = 'block';
+                
+                // 显示湿度指示器
+                const humidityIndicator = document.getElementById('humidity-indicator');
+                humidityIndicator.textContent = params.data.value[5];
+                humidityIndicator.style.display = 'block';
+                
+                // 更新指示器位置
+                updateIndicatorPosition(params.event.event, tempIndicator, humidityIndicator);
+            });
+            
+            weatherMap.on('mouseout', function () {
+                // 隐藏指示器
+                document.getElementById('temp-indicator').style.display = 'none';
+                document.getElementById('humidity-indicator').style.display = 'none';
+                document.getElementById('info-panel').style.display = 'none';
+            });
+            
+            // 添加全局鼠标移动事件来更新指示器位置
+            document.getElementById('weather-map').addEventListener('mousemove', function(e) {
+                const tempIndicator = document.getElementById('temp-indicator');
+                const humidityIndicator = document.getElementById('humidity-indicator');
+                
+                if (tempIndicator.style.display === 'block') {
+                    updateIndicatorPosition(e, tempIndicator, humidityIndicator);
+                }
+            });
+            
+            document.getElementById('status-text').textContent = '数据更新完成';
+        }
+
+        // 更新指示器位置
+        function updateIndicatorPosition(event, tempIndicator, humidityIndicator) {
+            const rect = document.getElementById('weather-map').getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            tempIndicator.style.left = (x + 15) + 'px';
+            tempIndicator.style.top = (y - 40) + 'px';
+            
+            humidityIndicator.style.left = (x + 15) + 'px';
+            humidityIndicator.style.top = (y - 15) + 'px';
+        }
+
+        // 更新信息面板
+        function updateInfoPanel(params) {
+            if (params.componentType === 'series' && params.seriesType === 'scatter') {
+                const data = params.data.value;
+                
+                document.getElementById('city-name').textContent = params.name;
+                document.getElementById('temp-value').textContent = data[4] + '°C';
+                document.getElementById('weather-value').textContent = data[6];
+                document.getElementById('wind-value').textContent = data[2] + ' km/h';
+                
+                // 添加风向符号
+                const windDir = data[3] || '北';
+                const windSymbol = windDirectionSymbols[windDir] || '⬇️';
+                
+                document.getElementById('wind-dir').innerHTML = windSymbol + ' ' + windDir + '风';
+                document.getElementById('humidity-value').textContent = data[5];
+                document.getElementById('rainfall-value').textContent = (data[7] || 0) + ' mm';
+                
+                // 显示信息面板
+                document.getElementById('info-panel').style.display = 'block';
+            }
+        }
+
+        // 窗口调整大小时重绘图表
+        window.addEventListener('resize', function() {
+            if (weatherMap) {
+                weatherMap.resize();
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            
+            // 刷新按钮事件
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                document.getElementById('status-text').textContent = '刷新数据中...';
+                loadWeatherData();
+            });
+            
+            // 每10分钟更新一次数据
+            setInterval(loadWeatherData, 10 * 60 * 1000);
+        });
+    </script>
+</body>
+</html>
